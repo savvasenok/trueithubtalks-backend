@@ -1,8 +1,6 @@
 package xyz.savvamirzoyan.trueithubtalks.module
 
 import io.ktor.application.*
-import io.ktor.features.*
-import io.ktor.gson.*
 import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
@@ -15,11 +13,6 @@ import xyz.savvamirzoyan.trueithubtalks.response.LoginResponse
 
 @Suppress("unused")
 fun Application.login() {
-
-    install(ContentNegotiation) {
-        gson()
-    }
-
     routing {
         post("/login") {
             val requestJson = withContext(Dispatchers.IO) { call.receive<LoginRequestData>() }

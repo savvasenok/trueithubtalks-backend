@@ -4,17 +4,19 @@ import xyz.savvamirzoyan.trueithubtalks.model.DBController
 import xyz.savvamirzoyan.trueithubtalks.model.User
 
 object AuthenticationController {
-    private fun checkCredentials(name: String, password: String) = DBController.getUser(name, password) != null
+    private fun checkCredentials(name: String) = DBController.getUser(name) != null
     fun getToken(name: String, password: String): String? =
-        if (checkCredentials(name, password)) "$name$password" else null
+        if (checkCredentials(name)) "$name$password" else null
 
-    fun createUser(name: String, password: String): String {
-        return if (checkCredentials(name, password)) {
-            buildToken(DBController.getUser(name, password)!!)
+    fun createUser(username: String, password: String): String {
+        return if (checkCredentials(username)) {
+            buildToken(DBController.getUser(username)!!)
         } else {
-            buildToken(DBController.createUser(name, password))
+            buildToken(DBController.createUser(username, password))
         }
     }
 
-    private fun buildToken(user: User): String ="${user.name}${user.password}"
+    private fun buildToken(user: User): String = "${user.name}|${user.password}"
+    private fun decomposeToken(token: String): Pair<String, String> = Pair(token.split("|")[0], token.split("|")[1])
+    fun getUserNameByToken(token: String): String = decomposeToken(token).first
 }

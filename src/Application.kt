@@ -2,6 +2,7 @@ package xyz.savvamirzoyan.trueithubtalks
 
 import io.ktor.application.*
 import io.ktor.features.*
+import io.ktor.gson.*
 import io.ktor.http.cio.websocket.*
 import io.ktor.network.tls.certificates.*
 import io.ktor.response.*
@@ -46,6 +47,7 @@ fun Application.module(testing: Boolean = true) {
 
     install(DefaultHeaders)
     install(CallLogging)
+    install(ContentNegotiation) { gson() }
 
     routing {
         get("/") {
