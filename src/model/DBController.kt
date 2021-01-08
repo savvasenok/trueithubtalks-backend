@@ -6,13 +6,13 @@ import xyz.savvamirzoyan.trueithubtalks.response.UserInfoResponse
 
 private val users = arrayListOf<User>(
     User("Savvasenok", "1", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
-    User("savva", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
-    User("Savvka", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png")
+    User("Peter", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
+    User("Robert", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png")
 )
 
 object DBController {
     fun createUser(name: String, password: String): User {
-        val newUser = User(name, password, "")
+        val newUser = User(name, password, "https://img.savvamirzoyan.xyz/picture_placeholder.png")
         users.add(newUser)
 
         return newUser

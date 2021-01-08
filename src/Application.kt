@@ -40,10 +40,6 @@ fun main(args: Array<String>) {
 @kotlin.jvm.JvmOverloads
 fun Application.module(testing: Boolean = true) {
 
-    install(WebSockets) {
-        pingPeriod = Duration.ofSeconds(60)
-        timeout = Duration.ofSeconds(15)
-    }
 
     install(DefaultHeaders)
     install(CallLogging)
@@ -53,34 +49,5 @@ fun Application.module(testing: Boolean = true) {
         get("/") {
             call.respondText("Hello world!")
         }
-
-//        webSocket("/") {
-//            for (frame in incoming) {
-//                println("FRAME: $frame")
-//                when (frame) {
-//                    is Frame.Text -> {
-//                        println("is Frame.Text")
-//                        val text = frame.readText()
-//                        if (outgoing !in connections) connections.add(outgoing)
-//                        for (i in connections) {
-//                            if (i != outgoing) i.send(Frame.Text(text))
-//                        }
-//                    }
-//
-//                    is Frame.Binary -> {
-//                        println("is Frame.Binary")
-//                    }
-//                    is Frame.Close -> {
-//                        println("is Frame.Close")
-//                    }
-//                    is Frame.Ping -> {
-//                        println("is Frame.Ping")
-//                    }
-//                    is Frame.Pong -> {
-//                        println("is Frame.Pong")
-//                    }
-//                }
-//            }
-//        }
     }
 }
