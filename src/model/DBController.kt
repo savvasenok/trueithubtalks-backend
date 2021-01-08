@@ -1,9 +1,14 @@
 package xyz.savvamirzoyan.trueithubtalks.model
 
 import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
+import xyz.savvamirzoyan.trueithubtalks.response.UserFoundResponse
 import xyz.savvamirzoyan.trueithubtalks.response.UserInfoResponse
 
-private val users = arrayListOf<User>(User("Savvasenok", "1", ""))
+private val users = arrayListOf<User>(
+    User("Savvasenok", "1", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
+    User("savva", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
+    User("Savvka", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png")
+)
 
 object DBController {
     fun createUser(name: String, password: String): User {
@@ -18,5 +23,15 @@ object DBController {
         val user = users.find { it.name == AuthenticationController.getUserNameByToken(token) }!!
 
         return UserInfoResponse(token, user.name, user.pictureUrl)
+    }
+
+    fun findUsersByUsername(username: String, usernameToSkip: String): List<UserFoundResponse> {
+        val usernameLower = username.toLowerCase()
+        val usernameToSkipLower = usernameToSkip.toLowerCase()
+
+        return users
+            .filter { it.name.toLowerCase().startsWith(usernameLower) }
+            .filter { it.name.toLowerCase() != usernameToSkipLower }
+            .map { UserFoundResponse(it.name, it.pictureUrl) }
     }
 }
