@@ -51,7 +51,7 @@ fun Application.userInfo() {
                         AuthenticationController.getUserNameByToken(requestJson.token)
                     )
                 }
-                
+
                 val usersFoundResponse = mapOf("users" to usersFound)
                 call.respond(HttpStatusCode.OK, usersFoundResponse)
             }
