@@ -4,16 +4,17 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.stream.JsonReader
 import io.ktor.application.*
-import io.ktor.http.*
 import io.ktor.http.cio.websocket.*
-import io.ktor.request.*
-import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
 import xyz.savvamirzoyan.trueithubtalks.model.Chat
-import xyz.savvamirzoyan.trueithubtalks.model.DBController
+import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.Disconnect
+import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.OpenChat
+import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.Wrapper
+import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.outcome.TextMessageIncome
 import java.io.StringReader
 import java.time.Duration
 
@@ -41,64 +42,63 @@ fun Application.websockets() {
 
                     is Frame.Text -> {
                         val text = frame.readText()
-                        println(text)
+
                         val jsonReader = JsonReader(StringReader(text.trim()))
                         jsonReader.isLenient = true
                         val json = Gson().fromJson<JsonObject>(jsonReader, JsonObject::class.java)
-
                         val type = json["type"].asString
-                        val data = json["data"].asJsonObject
 
                         if (type == "open-chat") {
-                            val token = data["token"].asString
-                            val senderUsername = AuthenticationController.getUserNameByToken(token)
-                            val receiverUsername = data["username"].asString
-                            var chatFound = false
+                            val openChat = Json.decodeFromString<Wrapper<OpenChat>>(text).data
+
+                            val senderUsername = AuthenticationController.getUserNameByToken(openChat.token)
+                            var chatFound: Chat? = null
 
                             // if chat already exists
                             for (chat in chats) {
-                                println("CHAT INFO: ${chat.hasUsername(receiverUsername)} | ${chat.hasUsername(senderUsername)}")
-                                if (chat.hasUsername(receiverUsername) && chat.hasUsername(senderUsername)) {
+                                if (chat.hasUsername(openChat.username) && chat.hasUsername(senderUsername)) {
                                     chat.addUser(senderUsername, outgoing)
-                                    chatFound = true
+                                    chatFound = chat
                                     break
                                 }
                             }
 
                             // create new chat
-                            if (!chatFound) {
+                            if (chatFound == null) {
                                 println("Create new chat")
                                 chats.add(
                                     Chat(
-                                        arrayListOf(senderUsername, receiverUsername),
-                                        mutableMapOf(senderUsername to outgoing, receiverUsername to null)
+                                        arrayListOf(senderUsername, openChat.username),
+                                        mutableMapOf(senderUsername to outgoing, openChat.username to null)
                                     )
                                 )
                             }
-                        } else if (type == "send-message") {
-                            val token = data["token"].asString
-                            val senderUsername = AuthenticationController.getUserNameByToken(token)
-                            val receiverUsername = data["username"].asString
-                            val message = data["message"].asString
+                        } else if (type == "new-message") {
+                            val newMessage = Json.decodeFromString<Wrapper<TextMessageIncome>>(text).data
+                            val senderUsername = AuthenticationController.getUserNameByToken(newMessage.token)
 
-                            var chat =
-                                chats.find { it.hasUsername(senderUsername) && it.hasUsername(receiverUsername) }
+                            var chat = chats.find {
+                                it.hasUsername(senderUsername) && it.hasUsername(newMessage.username)
+                            }
+
                             if (chat == null) {
                                 chat = Chat(
-                                    arrayListOf(senderUsername, receiverUsername),
+                                    arrayListOf(senderUsername, newMessage.username),
                                     mutableMapOf(senderUsername to outgoing)
                                 )
                                 chats.add(chat)
                             }
 
-                            chat.sendMessage(senderUsername, message)
-                        } else if (type == "disconnect") {
-                            val senderUsername = AuthenticationController.getUserNameByToken(data["token"].asString)
-                            val receiverUsername = data["username"].asString
+                            chat.sendMessage(senderUsername, newMessage.message)
 
+                        } else if (type == "disconnect") {
+                            val disconnect = Json.decodeFromString<Wrapper<Disconnect>>(text).data
+
+                            val senderUsername = AuthenticationController.getUserNameByToken(disconnect.token)
                             outgoing.close()
 
-                            chats.find { it.hasUsername(senderUsername) && it.hasUsername(receiverUsername) }?.deleteUser(senderUsername)
+                            chats.find { it.hasUsername(senderUsername) && it.hasUsername(disconnect.username) }
+                                ?.deleteUser(senderUsername)
                         }
                     }
 
