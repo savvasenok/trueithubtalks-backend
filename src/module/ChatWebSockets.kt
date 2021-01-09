@@ -19,20 +19,26 @@ import java.time.Duration
 
 private val chats = ArrayList<Chat>()
 
-data class Test(val type: String, val data: JsonObject)
-
 @Suppress("unused")
 fun Application.websockets() {
 
     install(WebSockets) {
-        pingPeriod = Duration.ofSeconds(300)
-        timeout = Duration.ofSeconds(300)
+        pingPeriod = Duration.ofSeconds(10)
+        timeout = Duration.ofSeconds(10)
     }
 
     routing {
         webSocket("/") {
             for (frame in incoming) {
                 when (frame) {
+                    is Frame.Ping -> {
+                        println("Ping: ${frame.buffer}")
+                    }
+
+                    is Frame.Pong -> {
+                        println("Pong: ${frame.buffer}")
+                    }
+
                     is Frame.Text -> {
                         val text = frame.readText()
                         println(text)
@@ -49,19 +55,23 @@ fun Application.websockets() {
                             val receiverUsername = data["username"].asString
                             var chatFound = false
 
+                            // if chat already exists
                             for (chat in chats) {
-                                if (chat.hasUsername(receiverUsername) && !chat.hasUsername(senderUsername)) {
+                                println("CHAT INFO: ${chat.hasUsername(receiverUsername)} | ${chat.hasUsername(senderUsername)}")
+                                if (chat.hasUsername(receiverUsername) && chat.hasUsername(senderUsername)) {
                                     chat.addUser(senderUsername, outgoing)
                                     chatFound = true
                                     break
                                 }
                             }
 
+                            // create new chat
                             if (!chatFound) {
+                                println("Create new chat")
                                 chats.add(
                                     Chat(
-                                        arrayListOf(senderUsername),
-                                        mutableMapOf(senderUsername to outgoing)
+                                        arrayListOf(senderUsername, receiverUsername),
+                                        mutableMapOf(senderUsername to outgoing, receiverUsername to null)
                                     )
                                 )
                             }
@@ -86,9 +96,9 @@ fun Application.websockets() {
                             val senderUsername = AuthenticationController.getUserNameByToken(data["token"].asString)
                             val receiverUsername = data["username"].asString
 
-                            val chat = chats
-                                .find { it.hasUsername(senderUsername) && it.hasUsername(receiverUsername) }
-                                ?.deleteUser(senderUsername)
+                            outgoing.close()
+
+                            chats.find { it.hasUsername(senderUsername) && it.hasUsername(receiverUsername) }?.deleteUser(senderUsername)
                         }
                     }
 
