@@ -65,7 +65,6 @@ fun Application.websockets() {
 
                             // create new chat
                             if (chatFound == null) {
-                                println("Create new chat")
                                 chats.add(
                                     Chat(
                                         arrayListOf(senderUsername, openChat.username),
@@ -73,7 +72,6 @@ fun Application.websockets() {
                                     )
                                 )
                             }
-
                             chatFound?.sendMessageHistory(senderUsername)
 
                         } else if (type == "new-message") {
@@ -96,7 +94,6 @@ fun Application.websockets() {
 
                         } else if (type == "disconnect") {
                             val disconnect = Json.decodeFromString<Wrapper<Disconnect>>(text).data
-
                             val senderUsername = AuthenticationController.getUserNameByToken(disconnect.token)
                             outgoing.close()
 

@@ -21,33 +21,41 @@ class Chat(
                     val json = Json.encodeToString(textMessageOutcome)
                     wsConnections[username]?.send(Frame.Text(json))
                     messages.add(textMessageOutcome.data)
-                    println("Sent message '$json' from $sender to $username")
                 } catch (e: kotlinx.coroutines.channels.ClosedSendChannelException) {
-                    println("Connection was closed by $username")
                     wsConnections.remove(username)
+                } catch (e: Exception) {
+                    println("   ERROR: $e")
                 }
             }
         }
     }
 
     fun addUser(username: String, wsConnection: SendChannel<Frame>) {
-        println("addUser($username) called")
-        if (username !in usernames) usernames.add(username)
-        wsConnections[username] = wsConnection
+        try {
+            if (username !in usernames) usernames.add(username)
+            wsConnections[username] = wsConnection
+        } catch (e: Exception) {
+            println("   ERROR: $e")
+        }
     }
 
     fun deleteUser(username: String) {
-        println("deleteUser($username) called")
-        wsConnections[username] = null
+        try {
+            wsConnections[username] = null
+        } catch (e: Exception) {
+            println("   ERROR: $e")
+        }
     }
 
     fun hasUsername(username: String) = username in usernames
 
     suspend fun sendMessageHistory(username: String) {
-        println("sendMessageHistory($username) called")
-
-        val messageHistory = MessageFactory.messageHistory(messages)
-        val json = Json.encodeToString(messageHistory)
-        wsConnections[username]?.send(Frame.Text(json))
+        try {
+            val messageHistory = MessageFactory.messageHistory(messages)
+            val json = Json.encodeToString(messageHistory)
+            wsConnections[username]?.send(Frame.Text(json))
+        } catch (e: Exception) {
+            println("   ERROR: $e")
+        }
     }
 }
