@@ -73,6 +73,9 @@ fun Application.websockets() {
                                     )
                                 )
                             }
+
+                            chatFound?.sendMessageHistory(senderUsername)
+
                         } else if (type == "new-message") {
                             val newMessage = Json.decodeFromString<Wrapper<TextMessageIncome>>(text).data
                             val senderUsername = AuthenticationController.getUserNameByToken(newMessage.token)

@@ -5,19 +5,22 @@ import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.MessageFactory
+import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.outcome.TextMessageOutcome
 
 class Chat(
     private val usernames: ArrayList<String>,
     private val wsConnections: MutableMap<String, SendChannel<Frame>?>,
 ) {
+    private val messages = arrayListOf<TextMessageOutcome>()
 
     suspend fun sendMessage(sender: String, message: String) {
         for (username in usernames) {
             if (username != sender) {
                 try {
-                    val json = Json.encodeToString(MessageFactory.textMessage(username, message))
-
+                    val textMessageOutcome = MessageFactory.textMessage(username, sender, message)
+                    val json = Json.encodeToString(textMessageOutcome)
                     wsConnections[username]?.send(Frame.Text(json))
+                    messages.add(textMessageOutcome.data)
                     println("Sent message '$json' from $sender to $username")
                 } catch (e: kotlinx.coroutines.channels.ClosedSendChannelException) {
                     println("Connection was closed by $username")
@@ -39,4 +42,12 @@ class Chat(
     }
 
     fun hasUsername(username: String) = username in usernames
+
+    suspend fun sendMessageHistory(username: String) {
+        println("sendMessageHistory($username) called")
+
+        val messageHistory = MessageFactory.messageHistory(messages)
+        val json = Json.encodeToString(messageHistory)
+        wsConnections[username]?.send(Frame.Text(json))
+    }
 }
