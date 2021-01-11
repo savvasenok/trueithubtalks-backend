@@ -4,10 +4,11 @@ import io.ktor.http.cio.websocket.*
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.Chat
 import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.MessageFactory
 import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.outcome.TextMessageOutcome
 
-class Chat(
+class ChatController(
     private val usernames: ArrayList<String>,
     private val wsConnections: MutableMap<String, SendChannel<Frame>?>,
 ) {
@@ -19,8 +20,14 @@ class Chat(
                 try {
                     val textMessageOutcome = MessageFactory.textMessage(username, sender, message)
                     val json = Json.encodeToString(textMessageOutcome)
-                    wsConnections[username]?.send(Frame.Text(json))
                     messages.add(textMessageOutcome.data)
+                    wsConnections[username]?.let {
+                        it.send(Frame.Text(json))
+                        return
+                    }
+
+                    ChatFeed.sendChatFeedUpdate(username, sender, message)
+
                 } catch (e: kotlinx.coroutines.channels.ClosedSendChannelException) {
                     wsConnections.remove(username)
                 } catch (e: Exception) {
@@ -48,6 +55,7 @@ class Chat(
     }
 
     fun hasUsername(username: String) = username in usernames
+    fun hasMessages(): Boolean = messages.isNotEmpty()
 
     suspend fun sendMessageHistory(username: String) {
         try {
@@ -57,5 +65,13 @@ class Chat(
         } catch (e: Exception) {
             println("   ERROR: $e")
         }
+    }
+
+    fun toChat(usernameToIgnore: String): Chat {
+        val username = usernames.find { it != usernameToIgnore }!!
+        val lastMessageText = messages.last().message
+        val pictureUrl = DBController.findUsersByUsername(username).first().pictureUrl
+
+        return Chat(username, lastMessageText, pictureUrl)
     }
 }

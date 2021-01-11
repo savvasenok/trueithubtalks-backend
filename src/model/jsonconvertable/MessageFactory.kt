@@ -10,4 +10,12 @@ object MessageFactory {
     fun messageHistory(messages: ArrayList<TextMessageOutcome>): Wrapper<ArrayList<TextMessageOutcome>> {
         return Wrapper("message-history", messages)
     }
+
+    fun chatInFeedUpdate(chat: Chat): Wrapper<Chat> {
+        return Wrapper("chat-feed-update", chat)
+    }
+
+    fun chatsFeedDownload(chats: ArrayList<Chat>): Wrapper<ArrayList<Chat>> {
+        return Wrapper("chat-feed-download", chats)
+    }
 }

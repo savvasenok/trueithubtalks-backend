@@ -5,9 +5,13 @@ import xyz.savvamirzoyan.trueithubtalks.response.UserFoundResponse
 import xyz.savvamirzoyan.trueithubtalks.response.UserInfoResponse
 
 private val users = arrayListOf<User>(
-    User("Savvasenok", "1", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
-    User("Peter", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png"),
-    User("Robert", "q", "https://img.savvamirzoyan.xyz/picture_placeholder.png")
+    User("Savvasenok", "1", "https://savvamirzoyan.xyz/project.main_page.static/img/selfie.jpg"),
+    User("Deep Thought", "q", "https://archaeogaming.files.wordpress.com/2018/06/2017-06-11-deep-thought.jpg"),
+    User(
+        "Pavel Durov",
+        "q",
+        "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn.crowdfundinsider.com%2Fwp-content%2Fuploads%2F2018%2F01%2FPavel-Durov.jpg&f=1&nofb=1"
+    )
 )
 
 object DBController {
@@ -25,7 +29,7 @@ object DBController {
         return UserInfoResponse(token, user.name, user.pictureUrl)
     }
 
-    fun findUsersByUsername(username: String, usernameToSkip: String): List<UserFoundResponse> {
+    fun findUsersByUsername(username: String, usernameToSkip: String = ""): List<UserFoundResponse> {
         val usernameLower = username.toLowerCase()
         val usernameToSkipLower = usernameToSkip.toLowerCase()
 
