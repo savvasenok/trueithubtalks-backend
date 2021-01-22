@@ -1,8 +1,6 @@
 package xyz.savvamirzoyan.trueithubtalks.module
 
 import io.ktor.application.*
-import io.ktor.features.*
-import io.ktor.gson.*
 import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
@@ -10,49 +8,45 @@ import io.ktor.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
+import xyz.savvamirzoyan.trueithubtalks.decorator.Decorator
 import xyz.savvamirzoyan.trueithubtalks.model.DBController
-import xyz.savvamirzoyan.trueithubtalks.request.UserInfoTokenRequestData
-import xyz.savvamirzoyan.trueithubtalks.request.UserInfoUsernameRequestData
-import xyz.savvamirzoyan.trueithubtalks.response.UserFoundResponse
+import xyz.savvamirzoyan.trueithubtalks.request.http.UserInfoRequest
+import xyz.savvamirzoyan.trueithubtalks.request.http.UserSearchUsernameRequest
+import xyz.savvamirzoyan.trueithubtalks.response.http.AccountInfoResponse
+import xyz.savvamirzoyan.trueithubtalks.response.http.UserPreviewInfoResponse
 
 @Suppress("unused")
 fun Application.userInfo() {
     routing {
-        post("/user-info-token") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<UserInfoTokenRequestData>() }
+        post("/user-info") {
+            val json = withContext(Dispatchers.IO) { call.receive<UserInfoRequest>() }
 
-            if (requestJson.token.isNotBlank() && requestJson.token.isNotEmpty()) {
-                val userInfoResponse = DBController.getUserInfoByToken(requestJson.token)
-                call.respond(HttpStatusCode.OK, userInfoResponse)
-            }
-        }
+            if (json.token.isNotBlank() && json.token.isNotEmpty()) {
+                val user = DBController.getUser(json.chatId)
 
-        post("/user-info-username") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<UserInfoUsernameRequestData>() }
-
-            if (requestJson.username.isNotBlank() &&
-                requestJson.username.isNotEmpty() &&
-                requestJson.token.isNotBlank() &&
-                requestJson.token.isNotEmpty()
-            ) {
-                val userInfoResponse = DBController.getUserInfoByToken(requestJson.token)
-                call.respond(HttpStatusCode.OK, userInfoResponse)
+                if (user != null) {
+                    call.respond(HttpStatusCode.OK, AccountInfoResponse(user.id, user.username, user.pictureUrl))
+                } else {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
             }
         }
 
         post("/user-search-username") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<UserInfoUsernameRequestData>() }
+            val json = withContext(Dispatchers.IO) { call.receive<UserSearchUsernameRequest>() }
 
-            if (requestJson.token.isNotBlank() && requestJson.token.isNotEmpty()) {
-                var usersFound = listOf<UserFoundResponse>()
-                if (requestJson.username != "") {
-                    usersFound = DBController.findUsersByUsername(
-                        requestJson.username,
-                        AuthenticationController.getUserNameByToken(requestJson.token)
+            if (json.token.isNotBlank() && json.token.isNotEmpty()) {
+                val username = AuthenticationController.usernameFromToken(json.token)
+                var usersFound = arrayListOf<UserPreviewInfoResponse>()
+                if (json.username != "") {
+                    usersFound = Decorator.usersToUserSearchResponse(
+                        DBController.findUsers(json.username),
+                        username
                     )
                 }
 
                 val usersFoundResponse = mapOf("users" to usersFound)
+                println("USERSFOUND: $usersFoundResponse")
                 call.respond(HttpStatusCode.OK, usersFoundResponse)
             }
         }

@@ -8,46 +8,46 @@ import io.ktor.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
-import xyz.savvamirzoyan.trueithubtalks.request.LoginRequestData
-import xyz.savvamirzoyan.trueithubtalks.response.LoginResponse
+import xyz.savvamirzoyan.trueithubtalks.model.DBController
+import xyz.savvamirzoyan.trueithubtalks.request.http.LoginCredentialsRequest
+import xyz.savvamirzoyan.trueithubtalks.response.http.LoginResponse
 
 @Suppress("unused")
 fun Application.login() {
     routing {
         post("/login") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<LoginRequestData>() }
+            val requestJson = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
 
-            if ((requestJson.name.isNotEmpty() && requestJson.name.isNotBlank()) &&
-                (requestJson.password.isNotEmpty() && requestJson.password.isNotBlank())
-            ) {
-                val token: String? = AuthenticationController.getToken(requestJson.name, requestJson.password)
+            if (AuthenticationController.areValidCredentialsFormat(requestJson.username, requestJson.password)) {
+                if (AuthenticationController.areValidCredentials(requestJson.username, requestJson.password)) {
+                    val token = AuthenticationController.buildToken(requestJson.username, requestJson.password)
+                    val user = DBController.getUser(requestJson.username)!!
 
-                if (token != null) {
-                    // Respond with 200 if everything is okay. Send token to user
-                    call.respond(HttpStatusCode.OK, LoginResponse(token))
-                } else {
-                    // Respond with 401 if credentials are invalid
-                    call.respond(HttpStatusCode.Unauthorized, LoginResponse())
+                    call.respond(HttpStatusCode.OK, LoginResponse(user.id, token, user.username, user.pictureUrl))
+                    return@post
                 }
+
+                call.respond(HttpStatusCode.Unauthorized)
             } else {
-                // Respond with 400 when name or password are empty or blank
-                call.respond(HttpStatusCode.BadRequest, LoginResponse())
+                call.respond(HttpStatusCode.BadRequest)
             }
         }
 
         post("/signup") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<LoginRequestData>() }
+            val requestJson = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
 
-            if ((requestJson.name.isNotEmpty() && requestJson.name.isNotBlank()) &&
-                (requestJson.password.isNotEmpty() && requestJson.password.isNotBlank())
-            ) {
-                val token: String = AuthenticationController.createUser(requestJson.name, requestJson.password)
+            if (AuthenticationController.areValidCredentialsFormat(requestJson.username, requestJson.password)) {
+                if (!AuthenticationController.areValidCredentials(requestJson.username, requestJson.password)) {
+                    DBController.createUser(requestJson.username, requestJson.password)
+                }
 
-                // Respond with 200 if everything is okay. Send token to user
-                call.respond(HttpStatusCode.OK, LoginResponse(token))
+                val token = AuthenticationController.buildToken(requestJson.username, requestJson.password)
+                val user = DBController.getUser(requestJson.username)!!
+
+                call.respond(HttpStatusCode.OK, LoginResponse(user.id, token, user.username, user.pictureUrl))
             } else {
                 // Respond with 400 when name or password are empty or blank
-                call.respond(HttpStatusCode.BadRequest, LoginResponse())
+                call.respond(HttpStatusCode.BadRequest)
             }
         }
     }

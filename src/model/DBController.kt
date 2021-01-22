@@ -1,41 +1,109 @@
 package xyz.savvamirzoyan.trueithubtalks.model
 
-import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
-import xyz.savvamirzoyan.trueithubtalks.response.UserFoundResponse
-import xyz.savvamirzoyan.trueithubtalks.response.UserInfoResponse
+import xyz.savvamirzoyan.trueithubtalks.factory.ChatItemResponseFactory
+import xyz.savvamirzoyan.trueithubtalks.interfaces.IDBController
+import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 
 private val users = arrayListOf<User>(
-    User("Savvasenok", "1", "https://savvamirzoyan.xyz/project.main_page.static/img/selfie.jpg"),
-    User("Deep Thought", "q", "https://archaeogaming.files.wordpress.com/2018/06/2017-06-11-deep-thought.jpg"),
-    User(
-        "Pavel Durov",
-        "q",
-        "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn.crowdfundinsider.com%2Fwp-content%2Fuploads%2F2018%2F01%2FPavel-Durov.jpg&f=1&nofb=1"
-    )
+    User(0, "Savvasenok", "1", "https://savvamirzoyan.xyz/project.main_page.static/img/selfie.jpg"),
+    User(1, "JohnDoe", "1", "https://www.thispersondoesnotexist.com/image")
 )
 
-object DBController {
-    fun createUser(name: String, password: String): User {
-        val newUser = User(name, password, "https://img.savvamirzoyan.xyz/picture_placeholder.png")
-        users.add(newUser)
+private val groupChatParticipants = arrayListOf<GroupChatParticipant>()
+private val groupChats = arrayListOf<GroupChat>()
+private val privateChats = arrayListOf<PrivateChat>()
+private val messages = arrayListOf<Message>()
 
-        return newUser
+object DBController : IDBController {
+
+    private const val picturePlaceholderUrl = "https://img.savvamirzoyan.xyz/picture_placeholder.png"
+
+    override fun getUser(username: String): User? {
+        return users.find { it.username == username }
     }
 
-    fun getUser(name: String): User? = users.find { it.name == name }
-    fun getUserInfoByToken(token: String): UserInfoResponse {
-        val user = users.find { it.name == AuthenticationController.getUserNameByToken(token) }!!
-
-        return UserInfoResponse(token, user.name, user.pictureUrl)
+    override fun getUser(chatId: Int): User? {
+        return users.find { it.id == chatId }
     }
 
-    fun findUsersByUsername(username: String, usernameToSkip: String = ""): List<UserFoundResponse> {
-        val usernameLower = username.toLowerCase()
-        val usernameToSkipLower = usernameToSkip.toLowerCase()
+    override fun findUsers(username: String): ArrayList<User> {
+        return ArrayList(users.filter { it.username.toLowerCase().startsWith(username.toLowerCase()) })
+    }
 
-        return users
-            .filter { it.name.toLowerCase().startsWith(usernameLower) }
-            .filter { it.name.toLowerCase() != usernameToSkipLower }
-            .map { UserFoundResponse(it.name, it.pictureUrl) }
+    override fun usernameExists(username: String): Boolean {
+        return getUser(username) != null
+    }
+
+    override fun createUser(username: String, password: String) {
+        users.add(User(users.size + 1, username, password, picturePlaceholderUrl))
+    }
+
+    override fun getChatsWithUser(username: String): ArrayList<ChatItemResponse> {
+        val userId = getUser(username)!!.id
+        val response = arrayListOf<ChatItemResponse>()
+
+        for (groupChatParticipant in groupChatParticipants) {
+            if (groupChatParticipant.userId == userId) {
+                for (groupChat in groupChats) {
+                    if (groupChat.id == groupChatParticipant.chatId) {
+                        response.add(
+                            ChatItemResponseFactory.chatItemResponse(
+                                groupChat.id,
+                                groupChat.title,
+                                "",
+                                groupChat.pictureUrl
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        for (privateChat in privateChats) {
+            val otherUser =
+                if (privateChat.userId1 == userId) users.find { it.id == privateChat.userId2 }!! else users.find { it.id == privateChat.userId1 }!!
+
+            response.add(
+                ChatItemResponseFactory.chatItemResponse(
+                    privateChat.id,
+                    otherUser.username,
+                    "",
+                    otherUser.pictureUrl
+                )
+            )
+        }
+
+        return response
+    }
+
+    override fun createGroupChat(usersIds: ArrayList<Int>): Int {
+        groupChats.add(GroupChat(-(groupChats.size + 1), "Chat #${groupChats.size}", picturePlaceholderUrl))
+        return groupChats.last().id
+    }
+
+    override fun createPrivateChat(userId1: Int, userId2: Int): Int {
+        privateChats.add(PrivateChat(privateChats.size, userId1, userId2))
+        return privateChats.size
+    }
+
+    override fun getMessages(chatId: Int): ArrayList<Message> {
+        return ArrayList(messages.filter { message -> message.chatId == chatId })
+    }
+
+    override fun chatExists(chatId: Int): Boolean {
+        // when user opens group chat, then (chatId < 0)
+        // when user opens private chat, then he sends userId of other user and gets chatId of private chat (chatId > 0)
+        if (chatId < 0) return groupChats.find { it.id == chatId } != null // has to be true ¯\_(ツ)_/¯
+        return privateChats.find { (it.userId1 == chatId) or (it.userId2 == chatId) } != null
+    }
+
+    override fun getPersonalChat(userId1: Int, userId2: Int): PrivateChat {
+        return privateChats.find {
+            ((it.userId1 == userId1) or (it.userId2 == userId1)) and ((it.userId1 == userId2) or (it.userId2 == userId2))
+        }!!
+    }
+
+    override fun getGroupChat(chatId: Int): GroupChat {
+        return groupChats.find { it.id == chatId }!!
     }
 }

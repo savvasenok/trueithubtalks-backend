@@ -1,24 +1,37 @@
 package xyz.savvamirzoyan.trueithubtalks.authentication
 
+import xyz.savvamirzoyan.trueithubtalks.interfaces.IAuthenticationController
 import xyz.savvamirzoyan.trueithubtalks.model.DBController
-import xyz.savvamirzoyan.trueithubtalks.model.User
 
-object AuthenticationController {
-    private fun checkCredentials(name: String) = DBController.getUser(name) != null
-    fun getToken(name: String, password: String): String? =
-        if (checkCredentials(name)) buildToken(name, password) else null
+object AuthenticationController : IAuthenticationController {
+    override val alphabet: List<Char> = ('A'..'Z') + ('a'..'z')
+    override val validCharacters: List<Char> = alphabet + ('0'..'9')
 
-    fun createUser(username: String, password: String): String {
-        return if (checkCredentials(username)) {
-            buildToken(DBController.getUser(username)!!)
-        } else {
-            buildToken(DBController.createUser(username, password))
-        }
+    override fun isValidUsername(username: String): Boolean {
+        return if (username.first() in alphabet) username.all { it in validCharacters } else false
     }
 
-    private fun buildToken(user: User): String = "${user.name}|${user.password}"
-    private fun buildToken(name: String, password: String): String = "${name}|${password}"
-    private fun decomposeToken(token: String): Pair<String, String> = Pair(token.split("|")[0], token.split("|")[1])
+    override fun isValidPassword(password: String): Boolean {
+        return password.all { it in validCharacters }
+    }
 
-    fun getUserNameByToken(token: String): String = decomposeToken(token).first
+    override fun areValidCredentials(username: String, password: String): Boolean {
+        val user = DBController.getUser(username)
+        user?.let { return it.username == username && it.password == password }
+
+        return false
+    }
+
+    override fun areValidCredentialsFormat(username: String, password: String): Boolean {
+        println("${isValidUsername(username)} | ${isValidPassword(password)}")
+        return isValidUsername(username) && isValidPassword(password)
+    }
+
+    override fun buildToken(username: String, password: String): String {
+        return "$username|$password"
+    }
+
+    override fun usernameFromToken(token: String): String {
+        return token.split("|").first()
+    }
 }

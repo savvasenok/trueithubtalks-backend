@@ -8,16 +8,21 @@ import io.ktor.http.cio.websocket.*
 import io.ktor.routing.*
 import io.ktor.websocket.*
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
-import xyz.savvamirzoyan.trueithubtalks.model.ChatController
-import xyz.savvamirzoyan.trueithubtalks.model.ChatFeed
-import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.*
-import xyz.savvamirzoyan.trueithubtalks.model.jsonconvertable.outcome.TextMessageIncome
+import xyz.savvamirzoyan.trueithubtalks.chat.ChatsController
+import xyz.savvamirzoyan.trueithubtalks.chat.ChatsFeedController
+import xyz.savvamirzoyan.trueithubtalks.decorator.Decorator
+import xyz.savvamirzoyan.trueithubtalks.factory.WebsocketsResponseFactory
+import xyz.savvamirzoyan.trueithubtalks.model.DBController
+import xyz.savvamirzoyan.trueithubtalks.request.websockets.DisconnectRequest
+import xyz.savvamirzoyan.trueithubtalks.request.websockets.OpenChatRequest
+import xyz.savvamirzoyan.trueithubtalks.request.websockets.TextMessageRequest
+import xyz.savvamirzoyan.trueithubtalks.request.websockets.TokenRequest
+import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperResponse
 import java.io.StringReader
 import java.time.Duration
-
-private val chats = ArrayList<ChatController>()
 
 @Suppress("unused")
 fun Application.websockets() {
@@ -33,11 +38,9 @@ fun Application.websockets() {
             for (frame in incoming) {
                 when (frame) {
                     is Frame.Ping -> {
-                        println("Ping: ${frame.buffer}")
                     }
 
                     is Frame.Pong -> {
-                        println("Pong: ${frame.buffer}")
                     }
 
                     is Frame.Text -> {
@@ -45,35 +48,36 @@ fun Application.websockets() {
 
                         val jsonReader = JsonReader(StringReader(text.trim()))
                         jsonReader.isLenient = true
-                        val json = Gson()
-                            .fromJson<JsonObject>(jsonReader, com.google.gson.JsonObject::class.java)
-                        val type = json["type"].asString
+                        val json = Gson().fromJson<JsonObject>(jsonReader, com.google.gson.JsonObject::class.java)
 
-                        if (type == "subscribe-chats-feed") {
-                            println("START subscribe-chats-feed")
+                        when (json["type"].asString) {
+                            "subscribe-chats-feed" -> {
+                                val token =
+                                    Json.decodeFromString<WebsocketsWrapperResponse<TokenRequest>>(text).data.token
+                                val username = AuthenticationController.usernameFromToken(token)
+                                val userChats = DBController.getChatsWithUser(username)
+                                val response = Decorator.jsonToString(
+                                    WebsocketsResponseFactory.chatsFeedDownload(
+                                        Decorator.chatsToChatsFeedResponse(
+                                            userChats,
+                                            username
+                                        )
+                                    )
+                                )
+                                println("RESPONSE: $response")
 
-                            val token = Json.decodeFromString<Wrapper<Token>>(text).data.token
-                            val username = AuthenticationController.getUserNameByToken(token)
-                            val userChats = arrayListOf<Chat>()
-                            println("Passed all vals")
-                            userChats.addAll(chats
-                                .filter { it.hasUsername(username) && it.hasMessages() }
-                                .map { it.toChat(username) }
-                            )
-                            println("Added all chats")
+                                ChatsFeedController.setChatsFeedListenerChannel(username, outgoing)
+                                ChatsFeedController.sendChatsFeed(username, response)
+                            }
 
-                            ChatFeed.addChannel(username, outgoing)
-                            println("Added channel")
-                            ChatFeed.sendAllChatsFeed(outgoing, userChats)
-                            println("Sent chats")
-                        } else if (type == "unsubscribe-chats-feed") {
-                            println("START: unsubscribe-chats-feed")
-                            val token = Json.decodeFromString<Wrapper<Token>>(text).data.token
-                            val username = AuthenticationController.getUserNameByToken(token)
+                            "unsubscribe-chats-feed" -> {
+                                val token =
+                                    Json.decodeFromString<WebsocketsWrapperResponse<TokenRequest>>(text).data.token
+                                val username = AuthenticationController.usernameFromToken(token)
 
-                            ChatFeed.deleteChannel(username)
-                            outgoing.close()
-                            println("END: unsubscribe-chats-feed")
+                                ChatsFeedController.deleteChatsFeedListener(username)
+                                outgoing.close()
+                            }
                         }
                     }
 
@@ -87,11 +91,9 @@ fun Application.websockets() {
             for (frame in incoming) {
                 when (frame) {
                     is Frame.Ping -> {
-                        println("Ping: ${frame.buffer}")
                     }
 
                     is Frame.Pong -> {
-                        println("Pong: ${frame.buffer}")
                     }
 
                     is Frame.Text -> {
@@ -100,59 +102,47 @@ fun Application.websockets() {
                         val jsonReader = JsonReader(StringReader(text.trim()))
                         jsonReader.isLenient = true
                         val json = Gson().fromJson<JsonObject>(jsonReader, JsonObject::class.java)
-                        val type = json["type"].asString
 
-                        if (type == "open-chat") {
-                            val openChat = Json.decodeFromString<Wrapper<OpenChat>>(text).data
+                        when (json["type"].asString) {
+                            "open-chat" -> {
+                                val openChat =
+                                    Json.decodeFromString<WebsocketsWrapperResponse<OpenChatRequest>>(text).data
 
-                            val senderUsername = AuthenticationController.getUserNameByToken(openChat.token)
-                            var chatFound: ChatController? = null
+                                val username = AuthenticationController.usernameFromToken(openChat.token)
+                                val user = DBController.getUser(username)!!
 
-                            // if chat already exists
-                            for (chat in chats) {
-                                if (chat.hasUsername(openChat.username) && chat.hasUsername(senderUsername)) {
-                                    chat.addUser(senderUsername, outgoing)
-                                    chatFound = chat
-                                    break
-                                }
-                            }
+                                // chatId, that would define chat, where user sends messages
+                                val chatId =
+                                    if (ChatsController.isPrivateChat(openChat.chatId)) DBController.getPersonalChat(
+                                        user.id,
+                                        openChat.chatId
+                                    ).id else DBController.getGroupChat(openChat.chatId).id
 
-                            // create new chat
-                            if (chatFound == null) {
-                                chats.add(
-                                    ChatController(
-                                        arrayListOf(senderUsername, openChat.username),
-                                        mutableMapOf(senderUsername to outgoing, openChat.username to null)
+                                val messages = DBController.getMessages(chatId)
+                                val json = Json.encodeToString(
+                                    WebsocketsResponseFactory.messageHistory(
+                                        Decorator.messagesToArrayListTextMessageResponse(messages)
                                     )
                                 )
+
+                                ChatsController.addChannel(openChat.chatId, user.id, outgoing)
+                                ChatsController.sendChatMessageHistory(openChat.chatId, user.id, json)
                             }
-                            chatFound?.sendMessageHistory(senderUsername)
+                            "new-message" -> {
+                                val newMessage =
+                                    Json.decodeFromString<WebsocketsWrapperResponse<TextMessageRequest>>(text).data
 
-                        } else if (type == "new-message") {
-                            val newMessage = Json.decodeFromString<Wrapper<TextMessageIncome>>(text).data
-                            val senderUsername = AuthenticationController.getUserNameByToken(newMessage.token)
-
-                            var chat = chats.find {
-                                it.hasUsername(senderUsername) && it.hasUsername(newMessage.username)
+                                ChatsController.sendTextMessageToChat(newMessage.chatId, newMessage.text)
                             }
+                            "disconnect" -> {
+                                val disconnect =
+                                    Json.decodeFromString<WebsocketsWrapperResponse<DisconnectRequest>>(text).data
+                                val senderUsername = AuthenticationController.usernameFromToken(disconnect.token)
+                                val senderUserId = DBController.getUser(senderUsername)!!.id
+                                outgoing.close()
 
-                            if (chat == null) {
-                                chat = ChatController(
-                                    arrayListOf(senderUsername, newMessage.username),
-                                    mutableMapOf(senderUsername to outgoing)
-                                )
-                                chats.add(chat)
+                                ChatsController.deleteChannel(disconnect.chatId, senderUserId)
                             }
-
-                            chat.sendMessage(senderUsername, newMessage.message)
-
-                        } else if (type == "disconnect") {
-                            val disconnect = Json.decodeFromString<Wrapper<Disconnect>>(text).data
-                            val senderUsername = AuthenticationController.getUserNameByToken(disconnect.token)
-                            outgoing.close()
-
-                            chats.find { it.hasUsername(senderUsername) && it.hasUsername(disconnect.username) }
-                                ?.deleteUser(senderUsername)
                         }
                     }
 
