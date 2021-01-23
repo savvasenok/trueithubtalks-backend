@@ -1,6 +1,7 @@
 package xyz.savvamirzoyan.trueithubtalks.factory
 
 import xyz.savvamirzoyan.trueithubtalks.interfaces.IWebsocketsResponseFactory
+import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatOpenResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatsFeedResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.TextMessageResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperResponse
@@ -8,14 +9,14 @@ import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperRes
 object WebsocketsResponseFactory : IWebsocketsResponseFactory {
     override fun textMessage(
         username: String,
-        sender: Int,
+        senderId: Int,
         message: String
     ): WebsocketsWrapperResponse<TextMessageResponse> {
-        return WebsocketsWrapperResponse("new-message", TextMessageResponse(username, sender, message))
+        return WebsocketsWrapperResponse("new-message", TextMessageResponse(username, senderId, message))
     }
 
-    override fun messageHistory(messages: ArrayList<TextMessageResponse>): WebsocketsWrapperResponse<ArrayList<TextMessageResponse>> {
-        return WebsocketsWrapperResponse("message-history", messages)
+    override fun messageHistory(chatOpenResponse: ChatOpenResponse): WebsocketsWrapperResponse<ChatOpenResponse> {
+        return WebsocketsWrapperResponse("message-history", chatOpenResponse)
     }
 
     override fun chatInFeedUpdate(chat: ChatsFeedResponse): WebsocketsWrapperResponse<ChatsFeedResponse> {

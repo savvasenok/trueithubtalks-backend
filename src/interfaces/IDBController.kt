@@ -1,9 +1,6 @@
 package xyz.savvamirzoyan.trueithubtalks.interfaces
 
-import xyz.savvamirzoyan.trueithubtalks.model.GroupChat
-import xyz.savvamirzoyan.trueithubtalks.model.Message
-import xyz.savvamirzoyan.trueithubtalks.model.PrivateChat
-import xyz.savvamirzoyan.trueithubtalks.model.User
+import xyz.savvamirzoyan.trueithubtalks.model.*
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 
 interface IDBController {
@@ -26,5 +23,7 @@ interface IDBController {
     fun chatExists(chatId: Int): Boolean
 
     fun getPersonalChat(userId1: Int, userId2: Int): PrivateChat
+    fun getPersonalChat(chatId: Int): PrivateChat
     fun getGroupChat(chatId: Int): GroupChat
+    fun getGroupChatParticipants(chatId: Int): ArrayList<GroupChatParticipant>
 }

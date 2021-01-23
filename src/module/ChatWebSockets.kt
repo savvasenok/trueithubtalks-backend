@@ -20,6 +20,7 @@ import xyz.savvamirzoyan.trueithubtalks.request.websockets.DisconnectRequest
 import xyz.savvamirzoyan.trueithubtalks.request.websockets.OpenChatRequest
 import xyz.savvamirzoyan.trueithubtalks.request.websockets.TextMessageRequest
 import xyz.savvamirzoyan.trueithubtalks.request.websockets.TokenRequest
+import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatOpenResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperResponse
 import java.io.StringReader
 import java.time.Duration
@@ -105,11 +106,12 @@ fun Application.websockets() {
 
                         when (json["type"].asString) {
                             "open-chat" -> {
+                                println("OPEN CHAT CALLED")
                                 val openChat =
                                     Json.decodeFromString<WebsocketsWrapperResponse<OpenChatRequest>>(text).data
 
-                                val username = AuthenticationController.usernameFromToken(openChat.token)
-                                val user = DBController.getUser(username)!!
+                                val user =
+                                    DBController.getUser(AuthenticationController.usernameFromToken(openChat.token))!!
 
                                 // chatId, that would define chat, where user sends messages
                                 val chatId =
@@ -118,21 +120,31 @@ fun Application.websockets() {
                                         openChat.chatId
                                     ).id else DBController.getGroupChat(openChat.chatId).id
 
-                                val messages = DBController.getMessages(chatId)
-                                val json = Json.encodeToString(
-                                    WebsocketsResponseFactory.messageHistory(
-                                        Decorator.messagesToArrayListTextMessageResponse(messages)
-                                    )
+                                val payload = ChatOpenResponse(
+                                    chatId,
+                                    Decorator.messagesToArrayListTextMessageResponse(DBController.getMessages(chatId))
                                 )
+                                val json = Json.encodeToString(WebsocketsResponseFactory.messageHistory(payload))
 
-                                ChatsController.addChannel(openChat.chatId, user.id, outgoing)
-                                ChatsController.sendChatMessageHistory(openChat.chatId, user.id, json)
+                                ChatsController.addChannel(chatId, user.id, outgoing)
+                                ChatsController.sendChatMessageHistory(chatId, user.id, json)
                             }
                             "new-message" -> {
+                                println("NEW MESSAGE CALLED")
                                 val newMessage =
                                     Json.decodeFromString<WebsocketsWrapperResponse<TextMessageRequest>>(text).data
 
-                                ChatsController.sendTextMessageToChat(newMessage.chatId, newMessage.text)
+                                val username = AuthenticationController.usernameFromToken(newMessage.token)
+                                val userId = DBController.getUser(username)?.id ?: 0
+
+                                val json = Json.encodeToString(
+                                    WebsocketsResponseFactory.textMessage(
+                                        username,
+                                        userId,
+                                        newMessage.message
+                                    )
+                                )
+                                ChatsController.sendTextMessageToChat(newMessage.chatId, json)
                             }
                             "disconnect" -> {
                                 val disconnect =

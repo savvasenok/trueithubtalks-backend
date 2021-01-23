@@ -3,6 +3,7 @@ package xyz.savvamirzoyan.trueithubtalks.chat
 import io.ktor.http.cio.websocket.*
 import kotlinx.coroutines.channels.SendChannel
 import xyz.savvamirzoyan.trueithubtalks.interfaces.IChatsController
+import xyz.savvamirzoyan.trueithubtalks.model.DBController
 
 object ChatsController : IChatsController {
 
@@ -22,10 +23,14 @@ object ChatsController : IChatsController {
     }
 
     override suspend fun sendTextMessageToChat(chatId: Int, text: String) {
-        val chatListenersChannels = channels[chatId]
-        chatListenersChannels?.let {
-            for (userId in it.keys) {
-                it[userId]?.send(Frame.Text(text))
+        if (isPrivateChat(chatId)) {
+            val personalChat = DBController.getPersonalChat(chatId)
+            channels[chatId]?.get(personalChat.userId1)?.send(Frame.Text(text))
+            channels[chatId]?.get(personalChat.userId2)?.send(Frame.Text(text))
+        } else {
+            val groupChatParticipants = DBController.getGroupChatParticipants(DBController.getGroupChat(chatId).id)
+            for (participant in groupChatParticipants) {
+                channels[chatId]?.get(participant.userId)?.send(Frame.Text(text))
             }
         }
     }
@@ -36,71 +41,3 @@ object ChatsController : IChatsController {
 
     override fun isPrivateChat(chatId: Int): Boolean = chatId >= 0
 }
-
-//class ChatController(
-//    private val usernames: ArrayList<String>,
-//    private val wsConnections: MutableMap<String, SendChannel<Frame>?>,
-//) {
-//    private val messages = arrayListOf<TextMessageResponse>()
-//
-//    suspend fun sendMessage(sender: String, message: String) {
-//        for (username in usernames) {
-//            if (username != sender) {
-//                try {
-//                    val textMessageOutcome = WebsocketsResponseFactory.textMessage(username, sender, message)
-//                    val json = Json.encodeToString(textMessageOutcome)
-//                    messages.add(textMessageOutcome.data)
-//                    wsConnections[username]?.let {
-//                        it.send(Frame.Text(json))
-//                        return
-//                    }
-//
-//                    ChatFeed.sendChatFeedUpdate(username, sender, message)
-//
-//                } catch (e: kotlinx.coroutines.channels.ClosedSendChannelException) {
-//                    wsConnections.remove(username)
-//                } catch (e: Exception) {
-//                    println("   ERROR: $e")
-//                }
-//            }
-//        }
-//    }
-//
-//    fun addUser(username: String, wsConnection: SendChannel<Frame>) {
-//        try {
-//            if (username !in usernames) usernames.add(username)
-//            wsConnections[username] = wsConnection
-//        } catch (e: Exception) {
-//            println("   ERROR: $e")
-//        }
-//    }
-//
-//    fun deleteUser(username: String) {
-//        try {
-//            wsConnections[username] = null
-//        } catch (e: Exception) {
-//            println("   ERROR: $e")
-//        }
-//    }
-//
-//    fun hasUsername(username: String) = username in usernames
-//    fun hasMessages(): Boolean = messages.isNotEmpty()
-//
-//    suspend fun sendMessageHistory(username: String) {
-//        try {
-//            val messageHistory = WebsocketsResponseFactory.messageHistory(messages)
-//            val json = Json.encodeToString(messageHistory)
-//            wsConnections[username]?.send(Frame.Text(json))
-//        } catch (e: Exception) {
-//            println("   ERROR: $e")
-//        }
-//    }
-//
-//    fun toChat(usernameToIgnore: String): ChatResponse {
-//        val username = usernames.find { it != usernameToIgnore }!!
-//        val lastMessageText = messages.last().message
-//        val pictureUrl = DBController.getUser(username).first().pictureUrl
-//
-//        return ChatResponse(username, lastMessageText, pictureUrl)
-//    }
-//}

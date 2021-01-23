@@ -3,4 +3,4 @@ package xyz.savvamirzoyan.trueithubtalks.response.websockets
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TextMessageResponse(val username: String, val senderId: Int, val message: String)
+data class ChatOpenResponse(val chatId: Int, val messages: ArrayList<TextMessageResponse>)

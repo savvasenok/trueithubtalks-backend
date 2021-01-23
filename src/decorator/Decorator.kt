@@ -7,6 +7,7 @@ import xyz.savvamirzoyan.trueithubtalks.model.DBController
 import xyz.savvamirzoyan.trueithubtalks.model.Message
 import xyz.savvamirzoyan.trueithubtalks.model.User
 import xyz.savvamirzoyan.trueithubtalks.response.http.UserPreviewInfoResponse
+import xyz.savvamirzoyan.trueithubtalks.response.http.UserSearchResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatsFeedResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.TextMessageResponse
@@ -21,10 +22,10 @@ object Decorator : IDecorator {
     override fun usersToUserSearchResponse(
         users: ArrayList<User>,
         usernameToIgnore: String
-    ): ArrayList<UserPreviewInfoResponse> {
+    ): ArrayList<UserSearchResponse> {
         return ArrayList(users
             .filter { it.username != usernameToIgnore }
-            .map { UserPreviewInfoResponse(it.id, it.username, it.pictureUrl) }
+            .map { UserSearchResponse(it.id, it.username, it.pictureUrl) }
         )
     }
 

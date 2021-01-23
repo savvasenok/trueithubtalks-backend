@@ -11,8 +11,8 @@ private val users = arrayListOf<User>(
 
 private val groupChatParticipants = arrayListOf<GroupChatParticipant>()
 private val groupChats = arrayListOf<GroupChat>()
-private val privateChats = arrayListOf<PrivateChat>()
-private val messages = arrayListOf<Message>()
+private val privateChats = arrayListOf<PrivateChat>(PrivateChat(2, 0, 1))
+private val messages = arrayListOf<Message>(Message(0, 2, 0, "Its Savva!"), Message(1, 2, 1, "Its John"))
 
 object DBController : IDBController {
 
@@ -103,7 +103,15 @@ object DBController : IDBController {
         }!!
     }
 
+    override fun getPersonalChat(chatId: Int): PrivateChat {
+        return privateChats.find { it.id == chatId }!!
+    }
+
     override fun getGroupChat(chatId: Int): GroupChat {
         return groupChats.find { it.id == chatId }!!
+    }
+
+    override fun getGroupChatParticipants(chatId: Int): ArrayList<GroupChatParticipant> {
+        return ArrayList(groupChatParticipants.filter { it.chatId == chatId })
     }
 }

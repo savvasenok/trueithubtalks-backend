@@ -13,7 +13,7 @@ import xyz.savvamirzoyan.trueithubtalks.model.DBController
 import xyz.savvamirzoyan.trueithubtalks.request.http.UserInfoRequest
 import xyz.savvamirzoyan.trueithubtalks.request.http.UserSearchUsernameRequest
 import xyz.savvamirzoyan.trueithubtalks.response.http.AccountInfoResponse
-import xyz.savvamirzoyan.trueithubtalks.response.http.UserPreviewInfoResponse
+import xyz.savvamirzoyan.trueithubtalks.response.http.UserSearchResponse
 
 @Suppress("unused")
 fun Application.userInfo() {
@@ -32,12 +32,12 @@ fun Application.userInfo() {
             }
         }
 
-        post("/user-search-username") {
+        post("/user-search") {
             val json = withContext(Dispatchers.IO) { call.receive<UserSearchUsernameRequest>() }
 
             if (json.token.isNotBlank() && json.token.isNotEmpty()) {
                 val username = AuthenticationController.usernameFromToken(json.token)
-                var usersFound = arrayListOf<UserPreviewInfoResponse>()
+                var usersFound = arrayListOf<UserSearchResponse>()
                 if (json.username != "") {
                     usersFound = Decorator.usersToUserSearchResponse(
                         DBController.findUsers(json.username),
