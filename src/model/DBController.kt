@@ -90,6 +90,11 @@ object DBController : IDBController {
         return ArrayList(messages.filter { message -> message.chatId == chatId })
     }
 
+    override fun addMessage(chatId: Int, userId: Int, text: String) {
+        println("USERID: $userId")
+        messages.add(Message(messages.size, chatId, userId, text))
+    }
+
     override fun chatExists(chatId: Int): Boolean {
         // when user opens group chat, then (chatId < 0)
         // when user opens private chat, then he sends userId of other user and gets chatId of private chat (chatId > 0)

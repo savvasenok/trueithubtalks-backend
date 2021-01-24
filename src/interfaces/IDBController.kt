@@ -19,6 +19,7 @@ interface IDBController {
     fun createPrivateChat(userId1: Int, userId2: Int): Int
 
     fun getMessages(chatId: Int): ArrayList<Message>
+    fun addMessage(chatId: Int, userId: Int, text: String)
 
     fun chatExists(chatId: Int): Boolean
 

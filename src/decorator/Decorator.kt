@@ -57,6 +57,6 @@ object Decorator : IDecorator {
                 usernames[message.userId] = DBController.getUser(message.userId)?.username ?: "noname"
             }
         }
-        return ArrayList(messages.map { TextMessageResponse(usernames[it.userId]!!, it.id, it.text) })
+        return ArrayList(messages.map { TextMessageResponse(usernames[it.userId]!!, it.userId, it.text) })
     }
 }

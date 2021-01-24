@@ -125,6 +125,7 @@ fun Application.websockets() {
                                     Decorator.messagesToArrayListTextMessageResponse(DBController.getMessages(chatId))
                                 )
                                 val json = Json.encodeToString(WebsocketsResponseFactory.messageHistory(payload))
+                                println(json)
 
                                 ChatsController.addChannel(chatId, user.id, outgoing)
                                 ChatsController.sendChatMessageHistory(chatId, user.id, json)
@@ -137,6 +138,8 @@ fun Application.websockets() {
                                 val username = AuthenticationController.usernameFromToken(newMessage.token)
                                 val userId = DBController.getUser(username)?.id ?: 0
 
+                                DBController.addMessage(newMessage.chatId, userId, newMessage.message)
+
                                 val json = Json.encodeToString(
                                     WebsocketsResponseFactory.textMessage(
                                         username,
@@ -147,6 +150,7 @@ fun Application.websockets() {
                                 ChatsController.sendTextMessageToChat(newMessage.chatId, json)
                             }
                             "disconnect" -> {
+                                println("DISCONNECT")
                                 val disconnect =
                                     Json.decodeFromString<WebsocketsWrapperResponse<DisconnectRequest>>(text).data
                                 val senderUsername = AuthenticationController.usernameFromToken(disconnect.token)
