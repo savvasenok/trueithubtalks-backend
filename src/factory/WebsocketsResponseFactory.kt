@@ -9,10 +9,10 @@ import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperRes
 object WebsocketsResponseFactory : IWebsocketsResponseFactory {
     override fun textMessage(
         username: String,
-        senderId: Int,
+        sender: Int,
         message: String
     ): WebsocketsWrapperResponse<TextMessageResponse> {
-        return WebsocketsWrapperResponse("new-message", TextMessageResponse(username, senderId, message))
+        return WebsocketsWrapperResponse("new-message", TextMessageResponse(username, sender, message))
     }
 
     override fun messageHistory(chatOpenResponse: ChatOpenResponse): WebsocketsWrapperResponse<ChatOpenResponse> {

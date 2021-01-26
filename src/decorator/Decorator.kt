@@ -7,7 +7,6 @@ import xyz.savvamirzoyan.trueithubtalks.model.DBController
 import xyz.savvamirzoyan.trueithubtalks.model.Message
 import xyz.savvamirzoyan.trueithubtalks.model.User
 import xyz.savvamirzoyan.trueithubtalks.response.http.UserPreviewInfoResponse
-import xyz.savvamirzoyan.trueithubtalks.response.http.UserSearchResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatsFeedResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.TextMessageResponse
@@ -17,16 +16,6 @@ object Decorator : IDecorator {
     override fun userToUserAccountInfoResponse(user: User?): UserPreviewInfoResponse? {
         user?.let { return UserPreviewInfoResponse(it.id, it.username, it.pictureUrl) }
         return null
-    }
-
-    override fun usersToUserSearchResponse(
-        users: ArrayList<User>,
-        usernameToIgnore: String
-    ): ArrayList<UserSearchResponse> {
-        return ArrayList(users
-            .filter { it.username != usernameToIgnore }
-            .map { UserSearchResponse(it.id, it.username, it.pictureUrl) }
-        )
     }
 
     override fun chatsToChatsFeedResponse(
@@ -44,8 +33,8 @@ object Decorator : IDecorator {
     }
 
     override fun <T> jsonToString(data: WebsocketsWrapperResponse<T>): String {
-        return when (data.data) {
-            arrayListOf<ChatsFeedResponse>()::class.java -> Json.encodeToString(data)
+        return when (data.data!!::class.java) {
+            ArrayList<ChatsFeedResponse>()::class.java -> Json.encodeToString(data as WebsocketsWrapperResponse<ArrayList<ChatsFeedResponse>>)
             else -> ""
         }
     }

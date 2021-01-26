@@ -2,17 +2,19 @@ package xyz.savvamirzoyan.trueithubtalks.model
 
 import xyz.savvamirzoyan.trueithubtalks.factory.ChatItemResponseFactory
 import xyz.savvamirzoyan.trueithubtalks.interfaces.IDBController
+import xyz.savvamirzoyan.trueithubtalks.response.http.ChatSearchResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 
 private val users = arrayListOf<User>(
     User(0, "Savvasenok", "1", "https://savvamirzoyan.xyz/project.main_page.static/img/selfie.jpg"),
-    User(1, "JohnDoe", "1", "https://www.thispersondoesnotexist.com/image")
+    User(1, "John", "1", "https://www.thispersondoesnotexist.com/image"),
+    User(2, "Johne", "1", "https://www.thispersondoesnotexist.com/image")
 )
 
 private val groupChatParticipants = arrayListOf<GroupChatParticipant>()
 private val groupChats = arrayListOf<GroupChat>()
-private val privateChats = arrayListOf<PrivateChat>(PrivateChat(2, 0, 1))
-private val messages = arrayListOf<Message>(Message(0, 2, 0, "Its Savva!"), Message(1, 2, 1, "Its John"))
+private val privateChats = arrayListOf<PrivateChat>()
+private val messages = arrayListOf<Message>()
 
 object DBController : IDBController {
 
@@ -26,8 +28,14 @@ object DBController : IDBController {
         return users.find { it.id == chatId }
     }
 
-    override fun findUsers(username: String): ArrayList<User> {
-        return ArrayList(users.filter { it.username.toLowerCase().startsWith(username.toLowerCase()) })
+    override fun findChats(searchQuery: String): ArrayList<ChatSearchResponse> {
+        return ArrayList(
+            users
+                .filter { it.username.toLowerCase().startsWith(searchQuery.toLowerCase()) }
+                .map { ChatSearchResponse(it.id, it.username, it.pictureUrl) }
+                    + groupChats
+                .filter { it.title.toLowerCase().startsWith(searchQuery.toLowerCase()) }
+                .map { ChatSearchResponse(it.id, it.title, it.pictureUrl) })
     }
 
     override fun usernameExists(username: String): Boolean {
@@ -38,8 +46,8 @@ object DBController : IDBController {
         users.add(User(users.size + 1, username, password, picturePlaceholderUrl))
     }
 
-    override fun getChatsWithUser(username: String): ArrayList<ChatItemResponse> {
-        val userId = getUser(username)!!.id
+    override fun getChatsWithUser(userId: Int): ArrayList<ChatItemResponse> {
+        // TODO: sort by time
         val response = arrayListOf<ChatItemResponse>()
 
         for (groupChatParticipant in groupChatParticipants) {
@@ -50,7 +58,7 @@ object DBController : IDBController {
                             ChatItemResponseFactory.chatItemResponse(
                                 groupChat.id,
                                 groupChat.title,
-                                "",
+                                messages.findLast { it.chatId == groupChat.id }?.text ?: "",
                                 groupChat.pictureUrl
                             )
                         )
@@ -60,14 +68,17 @@ object DBController : IDBController {
         }
 
         for (privateChat in privateChats) {
-            val otherUser =
-                if (privateChat.userId1 == userId) users.find { it.id == privateChat.userId2 }!! else users.find { it.id == privateChat.userId1 }!!
+            val otherUser: User = if (privateChat.userId1 == userId) {
+                users.find { it.id == privateChat.userId2 }!!
+            } else {
+                users.find { it.id == privateChat.userId1 }!!
+            }
 
             response.add(
                 ChatItemResponseFactory.chatItemResponse(
                     privateChat.id,
                     otherUser.username,
-                    "",
+                    messages.findLast { it.chatId == privateChat.id }?.text ?: "",
                     otherUser.pictureUrl
                 )
             )
@@ -83,7 +94,7 @@ object DBController : IDBController {
 
     override fun createPrivateChat(userId1: Int, userId2: Int): Int {
         privateChats.add(PrivateChat(privateChats.size, userId1, userId2))
-        return privateChats.size
+        return privateChats.last().id
     }
 
     override fun getMessages(chatId: Int): ArrayList<Message> {
@@ -102,14 +113,15 @@ object DBController : IDBController {
         return privateChats.find { (it.userId1 == chatId) or (it.userId2 == chatId) } != null
     }
 
-    override fun getPersonalChat(userId1: Int, userId2: Int): PrivateChat {
+    override fun getPrivateChat(userId1: Int, userId2: Int): PrivateChat {
+        println("USERID1: $userId1 | USERID2: $userId2")
         return privateChats.find {
             ((it.userId1 == userId1) or (it.userId2 == userId1)) and ((it.userId1 == userId2) or (it.userId2 == userId2))
-        }!!
+        } ?: getPrivateChat(createPrivateChat(userId1, userId2))!!
     }
 
-    override fun getPersonalChat(chatId: Int): PrivateChat {
-        return privateChats.find { it.id == chatId }!!
+    override fun getPrivateChat(chatId: Int): PrivateChat? {
+        return privateChats.find { it.id == chatId }
     }
 
     override fun getGroupChat(chatId: Int): GroupChat {

@@ -56,7 +56,8 @@ fun Application.websockets() {
                                 val token =
                                     Json.decodeFromString<WebsocketsWrapperResponse<TokenRequest>>(text).data.token
                                 val username = AuthenticationController.usernameFromToken(token)
-                                val userChats = DBController.getChatsWithUser(username)
+                                val userId = DBController.getUser(username)?.id ?: 0
+                                val userChats = DBController.getChatsWithUser(userId)
                                 val response = Decorator.jsonToString(
                                     WebsocketsResponseFactory.chatsFeedDownload(
                                         Decorator.chatsToChatsFeedResponse(
@@ -115,7 +116,7 @@ fun Application.websockets() {
 
                                 // chatId, that would define chat, where user sends messages
                                 val chatId =
-                                    if (ChatsController.isPrivateChat(openChat.chatId)) DBController.getPersonalChat(
+                                    if (ChatsController.isPrivateChat(openChat.chatId)) DBController.getPrivateChat(
                                         user.id,
                                         openChat.chatId
                                     ).id else DBController.getGroupChat(openChat.chatId).id

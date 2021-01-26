@@ -16,12 +16,31 @@ import xyz.savvamirzoyan.trueithubtalks.response.http.LoginResponse
 fun Application.login() {
     routing {
         post("/login") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
+            val json = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
+            println("UserAuth /login | json: $json")
 
-            if (AuthenticationController.areValidCredentialsFormat(requestJson.username, requestJson.password)) {
-                if (AuthenticationController.areValidCredentials(requestJson.username, requestJson.password)) {
-                    val token = AuthenticationController.buildToken(requestJson.username, requestJson.password)
-                    val user = DBController.getUser(requestJson.username)!!
+            println(
+                "UserAuth /login | areValidCredentialsFormat: ${
+                    AuthenticationController.areValidCredentialsFormat(
+                        json.username,
+                        json.password
+                    )
+                }"
+            )
+            if (AuthenticationController.areValidCredentialsFormat(json.username, json.password)) {
+                println(
+                    "UserAuth /login | areValidCredentials: ${
+                        AuthenticationController.areValidCredentials(
+                            json.username,
+                            json.password
+                        )
+                    }"
+                )
+                if (AuthenticationController.areValidCredentials(json.username, json.password)) {
+                    val token = AuthenticationController.buildToken(json.username, json.password)
+                    val user = DBController.getUser(json.username)!!
+                    println("UserAuth /login | token: $token")
+                    println("UserAuth /login | user: $user")
 
                     call.respond(HttpStatusCode.OK, LoginResponse(user.id, token, user.username, user.pictureUrl))
                     return@post
@@ -34,15 +53,34 @@ fun Application.login() {
         }
 
         post("/signup") {
-            val requestJson = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
+            val json = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
+            println("UserAuth /signup | json: $json")
 
-            if (AuthenticationController.areValidCredentialsFormat(requestJson.username, requestJson.password)) {
-                if (!AuthenticationController.areValidCredentials(requestJson.username, requestJson.password)) {
-                    DBController.createUser(requestJson.username, requestJson.password)
+            println(
+                "UserAuth /signup | areValidCredentialsFormat: ${
+                    AuthenticationController.areValidCredentialsFormat(
+                        json.username,
+                        json.password
+                    )
+                }"
+            )
+            if (AuthenticationController.areValidCredentialsFormat(json.username, json.password)) {
+                println(
+                    "UserAuth /signup | NOT areValidCredentials: ${
+                        !AuthenticationController.areValidCredentials(
+                            json.username,
+                            json.password
+                        )
+                    }"
+                )
+                if (!AuthenticationController.areValidCredentials(json.username, json.password)) {
+                    DBController.createUser(json.username, json.password)
                 }
 
-                val token = AuthenticationController.buildToken(requestJson.username, requestJson.password)
-                val user = DBController.getUser(requestJson.username)!!
+                val token = AuthenticationController.buildToken(json.username, json.password)
+                val user = DBController.getUser(json.username)!!
+                println("UserAuth /signup | token: $token")
+                println("UserAuth /signup | user: $user")
 
                 call.respond(HttpStatusCode.OK, LoginResponse(user.id, token, user.username, user.pictureUrl))
             } else {

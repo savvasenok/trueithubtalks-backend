@@ -3,7 +3,6 @@ package xyz.savvamirzoyan.trueithubtalks.interfaces
 import xyz.savvamirzoyan.trueithubtalks.model.Message
 import xyz.savvamirzoyan.trueithubtalks.model.User
 import xyz.savvamirzoyan.trueithubtalks.response.http.UserPreviewInfoResponse
-import xyz.savvamirzoyan.trueithubtalks.response.http.UserSearchResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatsFeedResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.TextMessageResponse
@@ -11,7 +10,6 @@ import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperRes
 
 interface IDecorator {
     fun userToUserAccountInfoResponse(user: User?): UserPreviewInfoResponse?
-    fun usersToUserSearchResponse(users: ArrayList<User>, usernameToIgnore: String): ArrayList<UserSearchResponse>
     fun chatsToChatsFeedResponse(
         chats: ArrayList<ChatItemResponse>,
         receiverUsername: String

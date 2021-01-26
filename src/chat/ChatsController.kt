@@ -24,9 +24,9 @@ object ChatsController : IChatsController {
 
     override suspend fun sendTextMessageToChat(chatId: Int, text: String) {
         if (isPrivateChat(chatId)) {
-            val personalChat = DBController.getPersonalChat(chatId)
-            channels[chatId]?.get(personalChat.userId1)?.send(Frame.Text(text))
-            channels[chatId]?.get(personalChat.userId2)?.send(Frame.Text(text))
+            val personalChat = DBController.getPrivateChat(chatId)
+            channels[chatId]?.get(personalChat?.userId1)?.send(Frame.Text(text))
+            channels[chatId]?.get(personalChat?.userId2)?.send(Frame.Text(text))
         } else {
             val groupChatParticipants = DBController.getGroupChatParticipants(DBController.getGroupChat(chatId).id)
             for (participant in groupChatParticipants) {
