@@ -6,9 +6,9 @@ import xyz.savvamirzoyan.trueithubtalks.response.http.ChatSearchResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 
 private val users = arrayListOf<User>(
-    User(0, "Savvasenok", "1", "https://savvamirzoyan.xyz/project.main_page.static/img/selfie.jpg"),
-    User(1, "John", "1", "https://www.thispersondoesnotexist.com/image"),
-    User(2, "Johne", "1", "https://www.thispersondoesnotexist.com/image")
+    User(10, "Savvasenok", "1", "https://savvamirzoyan.xyz/project.main_page.static/img/selfie.jpg"),
+    User(11, "John", "1", "https://www.thispersondoesnotexist.com/image"),
+    User(12, "Johne", "1", "https://www.thispersondoesnotexist.com/image")
 )
 
 private val groupChatParticipants = arrayListOf<GroupChatParticipant>()
@@ -24,8 +24,8 @@ object DBController : IDBController {
         return users.find { it.username == username }
     }
 
-    override fun getUser(chatId: Int): User? {
-        return users.find { it.id == chatId }
+    override fun getUser(userId: Int): User? {
+        return users.find { it.id == userId }
     }
 
     override fun findChats(searchQuery: String): ArrayList<ChatSearchResponse> {
@@ -68,6 +68,7 @@ object DBController : IDBController {
         }
 
         for (privateChat in privateChats) {
+            println(privateChat)
             val otherUser: User = if (privateChat.userId1 == userId) {
                 users.find { it.id == privateChat.userId2 }!!
             } else {

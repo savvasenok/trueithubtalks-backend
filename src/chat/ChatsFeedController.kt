@@ -5,17 +5,21 @@ import kotlinx.coroutines.channels.SendChannel
 import xyz.savvamirzoyan.trueithubtalks.interfaces.IChatsFeedController
 
 object ChatsFeedController : IChatsFeedController {
-    private val usersConnections = mutableMapOf<String, SendChannel<Frame.Text>>()
+    private val usersConnections = mutableMapOf<Int, SendChannel<Frame.Text>>()
 
-    override fun setChatsFeedListenerChannel(username: String, sendChannel: SendChannel<Frame.Text>) {
-        usersConnections[username] = sendChannel
+    override fun setChatsFeedListenerChannel(userId: Int, sendChannel: SendChannel<Frame.Text>) {
+        usersConnections[userId] = sendChannel
     }
 
-    override fun deleteChatsFeedListener(username: String) {
-        usersConnections.remove(username)
+    override fun deleteChatsFeedListener(userId: Int) {
+        usersConnections.remove(userId)
     }
 
-    override suspend fun sendChatsFeed(username: String, json: String) {
-        usersConnections[username]?.send(Frame.Text(json))
+    override suspend fun sendChatsFeed(userId: Int, json: String) {
+        usersConnections[userId]?.send(Frame.Text(json))
+    }
+
+    override suspend fun updateChatInFeed(userId: Int, json: String) {
+        usersConnections[userId]?.send(Frame.Text(json))
     }
 }

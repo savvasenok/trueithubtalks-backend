@@ -10,10 +10,7 @@ import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperRes
 
 interface IDecorator {
     fun userToUserAccountInfoResponse(user: User?): UserPreviewInfoResponse?
-    fun chatsToChatsFeedResponse(
-        chats: ArrayList<ChatItemResponse>,
-        receiverUsername: String
-    ): ArrayList<ChatsFeedResponse>
+    fun chatsToChatsFeedResponse(chats: ArrayList<ChatItemResponse>): ArrayList<ChatsFeedResponse>
 
     fun <T> jsonToString(data: WebsocketsWrapperResponse<T>): String
     fun messagesToArrayListTextMessageResponse(messages: ArrayList<Message>): ArrayList<TextMessageResponse>

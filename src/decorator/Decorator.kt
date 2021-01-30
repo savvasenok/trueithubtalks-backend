@@ -19,8 +19,7 @@ object Decorator : IDecorator {
     }
 
     override fun chatsToChatsFeedResponse(
-        chats: ArrayList<ChatItemResponse>,
-        receiverUsername: String
+        chats: ArrayList<ChatItemResponse>
     ): ArrayList<ChatsFeedResponse> {
         return ArrayList(chats.map {
             ChatsFeedResponse(

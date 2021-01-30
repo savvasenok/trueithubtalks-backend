@@ -21,6 +21,7 @@ import xyz.savvamirzoyan.trueithubtalks.request.websockets.OpenChatRequest
 import xyz.savvamirzoyan.trueithubtalks.request.websockets.TextMessageRequest
 import xyz.savvamirzoyan.trueithubtalks.request.websockets.TokenRequest
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatOpenResponse
+import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatsFeedResponse
 import xyz.savvamirzoyan.trueithubtalks.response.websockets.WebsocketsWrapperResponse
 import java.io.StringReader
 import java.time.Duration
@@ -61,23 +62,23 @@ fun Application.websockets() {
                                 val response = Decorator.jsonToString(
                                     WebsocketsResponseFactory.chatsFeedDownload(
                                         Decorator.chatsToChatsFeedResponse(
-                                            userChats,
-                                            username
+                                            userChats
                                         )
                                     )
                                 )
                                 println("RESPONSE: $response")
 
-                                ChatsFeedController.setChatsFeedListenerChannel(username, outgoing)
-                                ChatsFeedController.sendChatsFeed(username, response)
+                                ChatsFeedController.setChatsFeedListenerChannel(userId, outgoing)
+                                ChatsFeedController.sendChatsFeed(userId, response)
                             }
 
                             "unsubscribe-chats-feed" -> {
                                 val token =
                                     Json.decodeFromString<WebsocketsWrapperResponse<TokenRequest>>(text).data.token
                                 val username = AuthenticationController.usernameFromToken(token)
+                                val userId = DBController.getUser(username)?.id ?: 0
 
-                                ChatsFeedController.deleteChatsFeedListener(username)
+                                ChatsFeedController.deleteChatsFeedListener(userId)
                                 outgoing.close()
                             }
                         }
@@ -114,22 +115,15 @@ fun Application.websockets() {
                                 val user =
                                     DBController.getUser(AuthenticationController.usernameFromToken(openChat.token))!!
 
-                                // chatId, that would define chat, where user sends messages
-                                val chatId =
-                                    if (ChatsController.isPrivateChat(openChat.chatId)) DBController.getPrivateChat(
-                                        user.id,
-                                        openChat.chatId
-                                    ).id else DBController.getGroupChat(openChat.chatId).id
-
                                 val payload = ChatOpenResponse(
-                                    chatId,
-                                    Decorator.messagesToArrayListTextMessageResponse(DBController.getMessages(chatId))
+                                    openChat.chatId,
+                                    Decorator.messagesToArrayListTextMessageResponse(DBController.getMessages(openChat.chatId))
                                 )
                                 val json = Json.encodeToString(WebsocketsResponseFactory.messageHistory(payload))
                                 println(json)
 
-                                ChatsController.addChannel(chatId, user.id, outgoing)
-                                ChatsController.sendChatMessageHistory(chatId, user.id, json)
+                                ChatsController.addChannel(openChat.chatId, user.id, outgoing)
+                                ChatsController.sendChatMessageHistory(openChat.chatId, user.id, json)
                             }
                             "new-message" -> {
                                 println("NEW MESSAGE CALLED")
@@ -141,14 +135,60 @@ fun Application.websockets() {
 
                                 DBController.addMessage(newMessage.chatId, userId, newMessage.message)
 
-                                val json = Json.encodeToString(
+                                val jsonMessage = Json.encodeToString(
                                     WebsocketsResponseFactory.textMessage(
                                         username,
                                         userId,
                                         newMessage.message
                                     )
                                 )
-                                ChatsController.sendTextMessageToChat(newMessage.chatId, json)
+
+                                val chatItemResponse =
+                                    DBController.getChatsWithUser(userId).find { it.id == newMessage.chatId }
+
+                                ChatsController.sendTextMessageToChat(newMessage.chatId, jsonMessage)
+
+
+                                if (chatItemResponse?.id ?: 0 >= 0) {
+                                    val chat = DBController.getPrivateChat(newMessage.chatId)
+                                    val thisUser = DBController.getUser(userId)
+                                    val otherUserId = if (chat?.userId1 == userId) chat.userId2 else chat?.userId1 ?: 0
+                                    val otherUser = DBController.getUser(otherUserId)
+                                    println(otherUser)
+
+//                                    ChatsFeedController.updateChatInFeed(
+//                                        userId, Json.encodeToString(
+//                                            WebsocketsResponseFactory.chatInFeedUpdate(
+//                                                ChatsFeedResponse(
+//                                                    chatItemResponse?.id ?: 0,
+//                                                    chatItemResponse?.title ?: "DELETED CHAT",
+//                                                    chatItemResponse?.textPreview ?: "",
+//                                                    chatItemResponse?.pictureUrl ?: ""
+//                                                )
+//                                            )
+//                                        )
+//                                    )
+
+                                    ChatsFeedController.updateChatInFeed(
+                                        otherUserId, Json.encodeToString(
+                                            WebsocketsResponseFactory.chatInFeedUpdate(
+                                                ChatsFeedResponse(
+                                                    chatItemResponse?.id ?: 0,
+                                                    thisUser?.username ?: "DELETED CHAT",
+                                                    chatItemResponse?.textPreview ?: "",
+                                                    thisUser?.pictureUrl ?: ""
+                                                )
+                                            )
+                                        )
+                                    )
+//                                } else {
+//                                    TODO GROUP CHATS
+//                                    userIdsToNotify.addAll(
+//                                        DBController.getGroupChatParticipants(newMessage.chatId).map { it.userId })
+//                                    userIdsToNotify.remove(userId)
+//
+//
+                                }
                             }
                             "disconnect" -> {
                                 println("DISCONNECT")

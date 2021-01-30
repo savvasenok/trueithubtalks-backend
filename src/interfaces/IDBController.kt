@@ -6,7 +6,7 @@ import xyz.savvamirzoyan.trueithubtalks.response.websockets.ChatItemResponse
 
 interface IDBController {
     fun getUser(username: String): User?
-    fun getUser(chatId: Int): User?
+    fun getUser(userId: Int): User?
 
     fun findChats(searchQuery: String): ArrayList<ChatSearchResponse>
 
