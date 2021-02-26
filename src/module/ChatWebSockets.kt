@@ -119,11 +119,10 @@ fun Application.websockets() {
                                     openChat.chatId,
                                     Decorator.messagesToArrayListTextMessageResponse(DBController.getMessages(openChat.chatId))
                                 )
-                                val json = Json.encodeToString(WebsocketsResponseFactory.messageHistory(payload))
-                                println(json)
+                                val jsonString = Json.encodeToString(WebsocketsResponseFactory.messageHistory(payload))
 
                                 ChatsController.addChannel(openChat.chatId, user.id, outgoing)
-                                ChatsController.sendChatMessageHistory(openChat.chatId, user.id, json)
+                                ChatsController.sendChatMessageHistory(openChat.chatId, user.id, jsonString)
                             }
                             "new-message" -> {
                                 println("NEW MESSAGE CALLED")
@@ -148,26 +147,10 @@ fun Application.websockets() {
 
                                 ChatsController.sendTextMessageToChat(newMessage.chatId, jsonMessage)
 
-
                                 if (chatItemResponse?.id ?: 0 >= 0) {
                                     val chat = DBController.getPrivateChat(newMessage.chatId)
                                     val thisUser = DBController.getUser(userId)
-                                    val otherUserId = if (chat?.userId1 == userId) chat.userId2 else chat?.userId1 ?: 0
-                                    val otherUser = DBController.getUser(otherUserId)
-                                    println(otherUser)
-
-//                                    ChatsFeedController.updateChatInFeed(
-//                                        userId, Json.encodeToString(
-//                                            WebsocketsResponseFactory.chatInFeedUpdate(
-//                                                ChatsFeedResponse(
-//                                                    chatItemResponse?.id ?: 0,
-//                                                    chatItemResponse?.title ?: "DELETED CHAT",
-//                                                    chatItemResponse?.textPreview ?: "",
-//                                                    chatItemResponse?.pictureUrl ?: ""
-//                                                )
-//                                            )
-//                                        )
-//                                    )
+                                    val otherUserId = if (chat.userId1 == userId) chat.userId2 else chat.userId1
 
                                     ChatsFeedController.updateChatInFeed(
                                         otherUserId, Json.encodeToString(
@@ -181,13 +164,7 @@ fun Application.websockets() {
                                             )
                                         )
                                     )
-//                                } else {
 //                                    TODO GROUP CHATS
-//                                    userIdsToNotify.addAll(
-//                                        DBController.getGroupChatParticipants(newMessage.chatId).map { it.userId })
-//                                    userIdsToNotify.remove(userId)
-//
-//
                                 }
                             }
                             "disconnect" -> {

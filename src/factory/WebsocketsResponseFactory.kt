@@ -23,7 +23,7 @@ object WebsocketsResponseFactory : IWebsocketsResponseFactory {
         return WebsocketsWrapperResponse("chat-feed-update", chat)
     }
 
-    override fun chatsFeedDownload(chats: ArrayList<ChatsFeedResponse>): WebsocketsWrapperResponse<ArrayList<ChatsFeedResponse>> {
+    override fun chatsFeedDownload(chats: List<ChatsFeedResponse>): WebsocketsWrapperResponse<List<ChatsFeedResponse>> {
         return WebsocketsWrapperResponse("chat-feed-download", chats)
     }
 }

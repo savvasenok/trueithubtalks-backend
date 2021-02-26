@@ -54,33 +54,14 @@ fun Application.login() {
 
         post("/signup") {
             val json = withContext(Dispatchers.IO) { call.receive<LoginCredentialsRequest>() }
-            println("UserAuth /signup | json: $json")
 
-            println(
-                "UserAuth /signup | areValidCredentialsFormat: ${
-                    AuthenticationController.areValidCredentialsFormat(
-                        json.username,
-                        json.password
-                    )
-                }"
-            )
             if (AuthenticationController.areValidCredentialsFormat(json.username, json.password)) {
-                println(
-                    "UserAuth /signup | NOT areValidCredentials: ${
-                        !AuthenticationController.areValidCredentials(
-                            json.username,
-                            json.password
-                        )
-                    }"
-                )
                 if (!AuthenticationController.areValidCredentials(json.username, json.password)) {
                     DBController.createUser(json.username, json.password)
                 }
 
                 val token = AuthenticationController.buildToken(json.username, json.password)
                 val user = DBController.getUser(json.username)!!
-                println("UserAuth /signup | token: $token")
-                println("UserAuth /signup | user: $user")
 
                 call.respond(HttpStatusCode.OK, LoginResponse(user.id, token, user.username, user.pictureUrl))
             } else {

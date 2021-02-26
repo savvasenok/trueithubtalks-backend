@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.savvamirzoyan.trueithubtalks.authentication.AuthenticationController
 import xyz.savvamirzoyan.trueithubtalks.model.DBController
+import xyz.savvamirzoyan.trueithubtalks.model.entity.PrivateChat
 import xyz.savvamirzoyan.trueithubtalks.request.http.PersonalChatOpenerRequest
 import xyz.savvamirzoyan.trueithubtalks.request.http.UserInfoRequest
 import xyz.savvamirzoyan.trueithubtalks.request.http.UserSearchUsernameRequest
@@ -64,7 +65,13 @@ fun Application.userInfo() {
             if (json.token.isNotBlank() && json.token.isNotEmpty()) {
                 println("UserInfo /get-chat-from-search | token is okay")
                 val chatFromSearchResponse = if (json.id >= 0) {
-                    val chat = DBController.getPrivateChat(json.userId, json.id)
+                    val chat: PrivateChat = try {
+                        DBController.getPrivateChat(json.userId, json.id)
+                    } catch (e: NoSuchElementException) {
+                        val chatId = DBController.createPrivateChat(json.userId, json.id)
+                        DBController.getPrivateChat(chatId)
+                    }
+
                     val user = DBController.getUser(json.id)
                     println("UserInfo /get-chat-from-search | (if) chat: $chat")
                     println("UserInfo /get-chat-from-search | (if) user: $user")

@@ -9,5 +9,5 @@ interface IWebsocketsResponseFactory {
     fun textMessage(username: String, sender: Int, message: String): WebsocketsWrapperResponse<TextMessageResponse>
     fun messageHistory(chatOpenResponse: ChatOpenResponse): WebsocketsWrapperResponse<ChatOpenResponse>
     fun chatInFeedUpdate(chat: ChatsFeedResponse): WebsocketsWrapperResponse<ChatsFeedResponse>
-    fun chatsFeedDownload(chats: ArrayList<ChatsFeedResponse>): WebsocketsWrapperResponse<ArrayList<ChatsFeedResponse>>
+    fun chatsFeedDownload(chats: List<ChatsFeedResponse>): WebsocketsWrapperResponse<List<ChatsFeedResponse>>
 }

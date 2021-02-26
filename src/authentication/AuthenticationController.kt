@@ -18,12 +18,10 @@ object AuthenticationController : IAuthenticationController {
     override fun areValidCredentials(username: String, password: String): Boolean {
         val user = DBController.getUser(username)
         user?.let { return it.username == username && it.password == password }
-
         return false
     }
 
     override fun areValidCredentialsFormat(username: String, password: String): Boolean {
-        println("${isValidUsername(username)} | ${isValidPassword(password)}")
         return isValidUsername(username) && isValidPassword(password)
     }
 
